@@ -11,7 +11,7 @@ A production-grade Retrieval-Augmented Generation (RAG) system built over 50+ Wi
 ### 2. Installation
 ```bash
 # Clone the repository
-git clone <repository_url>
+git clone https://github.com/Faris-Maulana/rag-system.git
 cd rag-system
 
 # Create and activate virtual environment
