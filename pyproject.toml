@@ -1,0 +1,21 @@
+[project]
+name = "rag-system"
+version = "1.0.0"
+description = "Retrieval-augmented generation over Wikipedia AI/ML articles: dense retrieval, cross-encoder reranking, fine-tuned embeddings, bias audit and LLM-judge evaluation."
+requires-python = ">=3.11"
+license = "MIT"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "conftest", "config", "ingest", "embed", "retrieve", "generate", "pipeline", "evaluate", "bias_audit", "finetune_embeddings"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,9 +1,12 @@
-import os
-import json
 import argparse
-from tqdm import tqdm
+import json
+
 import chromadb
 from sentence_transformers import SentenceTransformer
+from tqdm import tqdm
+
+from config import CHROMA_PERSIST_DIR, CHUNKS_PATH, COLLECTION_NAME, EMBEDDING_MODEL
+
 
 def load_chunks(filepath):
     chunks = []
@@ -13,12 +16,33 @@ def load_chunks(filepath):
                 chunks.append(json.loads(line))
     return chunks
 
+def get_collection(client, embedding_model_name, reset=False):
+    """Return the collection, refusing to mix vectors from two different embedding models."""
+    if reset:
+        try:
+            client.delete_collection(COLLECTION_NAME)
+        except Exception:
+            pass  # nothing to delete
+    collection = client.get_or_create_collection(
+        name=COLLECTION_NAME,
+        metadata={"hnsw:space": "cosine", "embedding_model": embedding_model_name}
+    )
+    indexed_with = (collection.metadata or {}).get("embedding_model")
+    if indexed_with and indexed_with != embedding_model_name and collection.count() > 0:
+        raise SystemExit(
+            f"Collection '{COLLECTION_NAME}' was built with '{indexed_with}', not "
+            f"'{embedding_model_name}'. Re-run with --reset to rebuild the index."
+        )
+    return collection
+
 def main():
     parser = argparse.ArgumentParser(description="Embed Wikipedia chunks and store in ChromaDB")
-    parser.add_argument("--model", type=str, default="all-MiniLM-L6-v2", 
+    parser.add_argument("--model", type=str, default=EMBEDDING_MODEL,
                         help="Path or name of the embedding model to use")
-    parser.add_argument("--data", type=str, default="data/processed/chunks.jsonl",
+    parser.add_argument("--data", type=str, default=CHUNKS_PATH,
                         help="Path to the chunked data file")
+    parser.add_argument("--reset", action="store_true",
+                        help="Drop the existing collection before indexing (needed when switching models)")
     args = parser.parse_args()
 
     print(f"Loading chunks from {args.data}...")
@@ -32,29 +56,16 @@ def main():
     print(f"Loading embedding model: {args.model}")
     model = SentenceTransformer(args.model)
 
-    print("Initializing ChromaDB...")
-    persist_directory = "./vectorstore/chroma_db"
-    
-    # Optional logic: If we're changing models (e.g., to finetuned), we might need to clear the old DB
-    # or use a different collection name to avoid dimension mismatch errors. 
-    # For now, we stick to the required task.
-    
-    client = chromadb.PersistentClient(path=persist_directory)
-
-    # Use get_or_create to avoid errors on re-runs and explicitly set cosine distance space (from debug guide)
-    collection = client.get_or_create_collection(
-        name="rag_wikipedia",
-        metadata={"hnsw:space": "cosine"}
-    )
+    print(f"Initializing ChromaDB at {CHROMA_PERSIST_DIR}...")
+    client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+    collection = get_collection(client, args.model, reset=args.reset)
 
     batch_size = 64
     print(f"Embedding and upserting chunks in batches of {batch_size}...")
 
-    # Process in batches
     for i in tqdm(range(0, len(chunks), batch_size)):
         batch = chunks[i:i + batch_size]
-        
-        # Extract fields
+
         ids = [c["chunk_id"] for c in batch]
         texts = [c["text"] for c in batch]
         metadatas = [{
@@ -64,10 +75,8 @@ def main():
             "token_count": c["token_count"]
         } for c in batch]
 
-        # Generate embeddings
         embeddings = model.encode(texts, convert_to_numpy=True).tolist()
 
-        # Upsert to ChromaDB
         collection.upsert(
             ids=ids,
             embeddings=embeddings,
@@ -78,17 +87,16 @@ def main():
     print(f"Stored {collection.count()} total chunks in ChromaDB.")
     print("Embedding complete.")
 
-    # Validation step inline
     print("\n--- Running Quick Validation ---")
     query = "What is a transformer model?"
     print(f"Query: '{query}'")
-    
+
     query_emb = model.encode([query]).tolist()
     results = collection.query(
         query_embeddings=query_emb,
         n_results=1
     )
-    
+
     if results['documents'] and results['documents'][0]:
         print(f"Top result source: {results['metadatas'][0][0]['source']}")
         print(f"Top result text snippet: {results['documents'][0][0][:100]}...")

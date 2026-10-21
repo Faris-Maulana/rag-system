@@ -1,0 +1,310 @@
+{
+    "num_samples": 20,
+    "k": 3,
+    "summary": {
+        "dense_context_precision": 0.5429615564174387,
+        "reranked_context_precision": 0.6117133520074697
+    },
+    "samples": [
+        {
+            "question": "What is the attention mechanism in transformers?",
+            "dense_context_precision": 0.5555555555555556,
+            "reranked_context_precision": 0.5,
+            "dense_sources": [
+                "Attention (machine learning)",
+                "Transformer (deep learning)",
+                "Transformer (deep learning)"
+            ],
+            "reranked_sources": [
+                "Attention (machine learning)",
+                "Transformer (deep learning)",
+                "Transformer (deep learning)"
+            ]
+        },
+        {
+            "question": "How does BERT differ from GPT?",
+            "dense_context_precision": 0.5,
+            "reranked_context_precision": 0.5714285714285714,
+            "dense_sources": [
+                "BERT (language model)",
+                "BERT (language model)",
+                "Large language model"
+            ],
+            "reranked_sources": [
+                "BERT (language model)",
+                "BERT (language model)",
+                "BERT (language model)"
+            ]
+        },
+        {
+            "question": "What is retrieval-augmented generation?",
+            "dense_context_precision": 0.5,
+            "reranked_context_precision": 0.7222222222222222,
+            "dense_sources": [
+                "Retrieval-augmented generation",
+                "Large language model",
+                "Retrieval-augmented generation"
+            ],
+            "reranked_sources": [
+                "Large language model",
+                "Prompt engineering",
+                "Retrieval-augmented generation"
+            ]
+        },
+        {
+            "question": "Who invented the transformer architecture?",
+            "dense_context_precision": 0.2857142857142857,
+            "reranked_context_precision": 0.7142857142857143,
+            "dense_sources": [
+                "Transformer (deep learning)",
+                "Transformer (deep learning)",
+                "Transformer (deep learning)"
+            ],
+            "reranked_sources": [
+                "Large language model",
+                "Attention (machine learning)",
+                "Transformer (deep learning)"
+            ]
+        },
+        {
+            "question": "What is a major limitation of large language models?",
+            "dense_context_precision": 0.375,
+            "reranked_context_precision": 0.25,
+            "dense_sources": [
+                "Large language model",
+                "Large language model",
+                "Generative pre-trained transformer"
+            ],
+            "reranked_sources": [
+                "Large language model",
+                "Prompt engineering",
+                "Language model"
+            ]
+        },
+        {
+            "question": "What is the difference between supervised and unsupervised learning?",
+            "dense_context_precision": 0.3888888888888889,
+            "reranked_context_precision": 0.6666666666666666,
+            "dense_sources": [
+                "Unsupervised learning",
+                "Machine learning",
+                "Unsupervised learning"
+            ],
+            "reranked_sources": [
+                "Unsupervised learning",
+                "Machine learning",
+                "Machine learning"
+            ]
+        },
+        {
+            "question": "What is backpropagation?",
+            "dense_context_precision": 0.7647058823529411,
+            "reranked_context_precision": 0.7647058823529411,
+            "dense_sources": [
+                "Backpropagation",
+                "Backpropagation",
+                "Backpropagation"
+            ],
+            "reranked_sources": [
+                "Backpropagation",
+                "Backpropagation",
+                "Backpropagation"
+            ]
+        },
+        {
+            "question": "What is the purpose of an activation function in a neural network?",
+            "dense_context_precision": 0.5384615384615384,
+            "reranked_context_precision": 0.5384615384615384,
+            "dense_sources": [
+                "Activation function",
+                "Activation function",
+                "Activation function"
+            ],
+            "reranked_sources": [
+                "Activation function",
+                "Activation function",
+                "Multilayer perceptron"
+            ]
+        },
+        {
+            "question": "What is overfitting in machine learning?",
+            "dense_context_precision": 0.5333333333333333,
+            "reranked_context_precision": 0.5333333333333333,
+            "dense_sources": [
+                "Overfitting",
+                "Overfitting",
+                "Overfitting"
+            ],
+            "reranked_sources": [
+                "Overfitting",
+                "Overfitting",
+                "Machine learning"
+            ]
+        },
+        {
+            "question": "What does a convolutional neural network (CNN) excel at?",
+            "dense_context_precision": 0.25,
+            "reranked_context_precision": 0.375,
+            "dense_sources": [
+                "Convolutional neural network",
+                "Convolutional neural network",
+                "Convolutional neural network"
+            ],
+            "reranked_sources": [
+                "Convolutional neural network",
+                "Convolutional neural network",
+                "Convolutional neural network"
+            ]
+        },
+        {
+            "question": "What are word embeddings?",
+            "dense_context_precision": 0.5384615384615384,
+            "reranked_context_precision": 0.6923076923076923,
+            "dense_sources": [
+                "Sentence embedding",
+                "Word embedding",
+                "Word embedding"
+            ],
+            "reranked_sources": [
+                "Word embedding",
+                "Word embedding",
+                "Sentence embedding"
+            ]
+        },
+        {
+            "question": "What is a vector database?",
+            "dense_context_precision": 0.5384615384615384,
+            "reranked_context_precision": 0.5384615384615384,
+            "dense_sources": [
+                "Vector database",
+                "Vector database",
+                "Vector database"
+            ],
+            "reranked_sources": [
+                "Vector database",
+                "Vector database",
+                "Vector database"
+            ]
+        },
+        {
+            "question": "What is the Turing test?",
+            "dense_context_precision": 0.8333333333333334,
+            "reranked_context_precision": 0.8333333333333334,
+            "dense_sources": [
+                "Turing test",
+                "Turing test",
+                "Turing test"
+            ],
+            "reranked_sources": [
+                "Artificial general intelligence",
+                "Turing test",
+                "Turing test"
+            ]
+        },
+        {
+            "question": "What is transfer learning?",
+            "dense_context_precision": 0.5384615384615384,
+            "reranked_context_precision": 0.6153846153846154,
+            "dense_sources": [
+                "Transfer learning",
+                "Artificial intelligence",
+                "Transfer learning"
+            ],
+            "reranked_sources": [
+                "Transfer learning",
+                "Transfer learning",
+                "Transfer learning"
+            ]
+        },
+        {
+            "question": "What is reinforcement learning?",
+            "dense_context_precision": 0.7692307692307693,
+            "reranked_context_precision": 0.8461538461538461,
+            "dense_sources": [
+                "Machine learning",
+                "Q-learning",
+                "Machine learning"
+            ],
+            "reranked_sources": [
+                "Machine learning",
+                "Markov decision process",
+                "Reinforcement learning"
+            ]
+        },
+        {
+            "question": "What is fine-tuning in the context of LLMs?",
+            "dense_context_precision": 0.5,
+            "reranked_context_precision": 0.375,
+            "dense_sources": [
+                "Large language model",
+                "Fine-tuning (deep learning)",
+                "Large language model"
+            ],
+            "reranked_sources": [
+                "Large language model",
+                "Large language model",
+                "Large language model"
+            ]
+        },
+        {
+            "question": "What is a multilayer perceptron?",
+            "dense_context_precision": 0.6470588235294118,
+            "reranked_context_precision": 0.8235294117647058,
+            "dense_sources": [
+                "Multilayer perceptron",
+                "Perceptron",
+                "Perceptron"
+            ],
+            "reranked_sources": [
+                "Multilayer perceptron",
+                "Multilayer perceptron",
+                "Multilayer perceptron"
+            ]
+        },
+        {
+            "question": "What is a foundation model?",
+            "dense_context_precision": 0.5333333333333333,
+            "reranked_context_precision": 0.5333333333333333,
+            "dense_sources": [
+                "Foundation model",
+                "Generative pre-trained transformer",
+                "Foundation model"
+            ],
+            "reranked_sources": [
+                "Generative pre-trained transformer",
+                "Foundation model",
+                "Foundation model"
+            ]
+        },
+        {
+            "question": "What is the role of ChromaDB in RAG?",
+            "dense_context_precision": 0.5,
+            "reranked_context_precision": 0.5714285714285714,
+            "dense_sources": [
+                "Retrieval-augmented generation",
+                "ChromaDB",
+                "Large language model"
+            ],
+            "reranked_sources": [
+                "ChromaDB",
+                "Large language model",
+                "Retrieval-augmented generation"
+            ]
+        },
+        {
+            "question": "What is prompt engineering?",
+            "dense_context_precision": 0.7692307692307693,
+            "reranked_context_precision": 0.7692307692307693,
+            "dense_sources": [
+                "Prompt engineering",
+                "Prompt engineering",
+                "Prompt engineering"
+            ],
+            "reranked_sources": [
+                "Prompt engineering",
+                "Prompt engineering",
+                "Prompt engineering"
+            ]
+        }
+    ]
+}

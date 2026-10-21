@@ -1,13 +1,12 @@
 import os
 import time
-from dotenv import load_dotenv
+
 from groq import Groq, RateLimitError
 
-# Load environment variables
-load_dotenv()
+from config import GROQ_MODEL
 
-SYSTEM_PROMPT = """You are a precise AI assistant that answers questions strictly based 
-on the provided context. If the answer is not in the context, say 
+SYSTEM_PROMPT = """You are a precise AI assistant that answers questions strictly based
+on the provided context. If the answer is not in the context, say
 "I don't have enough information to answer that." Do NOT hallucinate.
 Always cite the source article you used."""
 
@@ -22,12 +21,13 @@ Question: {question}
 Answer (with source citation):"""
 
 class Generator:
-    def __init__(self, model_name="llama-3.1-8b-instant"):
-        self.api_key = os.getenv("GROQ_API_KEY")
-        if not self.api_key or self.api_key == "your_groq_api_key_here":
-            raise ValueError("Groq API key is missing or invalid. Please check .env file.")
-            
-        self.client = Groq(api_key=self.api_key)
+    def __init__(self, model_name=GROQ_MODEL, client=None):
+        if client is None:
+            api_key = os.getenv("GROQ_API_KEY")
+            if not api_key or api_key == "your_groq_api_key_here":
+                raise ValueError("GROQ_API_KEY is missing. Copy .env.example to .env and set it.")
+            client = Groq(api_key=api_key)
+        self.client = client
         self.model_name = model_name
 
     def format_prompt(self, question: str, contexts: list[str]) -> str:
@@ -40,7 +40,7 @@ class Generator:
     def generate(self, question: str, context_chunks: list[str], max_retries=3) -> str:
         """Call LLM with backoff logic (helpful for free-tier rate limits)"""
         formatted_user_prompt = self.format_prompt(question, context_chunks)
-        
+
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": formatted_user_prompt}
@@ -54,10 +54,10 @@ class Generator:
                     temperature=0.0, # zero temperature for extraction/RAG
                     max_tokens=1024
                 )
-                
+
                 if not response.choices:
                     return "Error: LLM returned no response."
-                
+
                 return response.choices[0].message.content.strip()
 
             except RateLimitError:
@@ -65,6 +65,8 @@ class Generator:
                 print(f"[Warning] Groq Rate limit reached. Retrying in {wait}s...")
                 time.sleep(wait)
             except Exception as e:
+                # Auth/validation errors won't fix themselves; retrying only burns quota.
                 print(f"Generation error: {e}")
-                
+                return f"Error: LLM call failed ({type(e).__name__})."
+
         return "Error: Max retries exceeded connecting to LLM."
