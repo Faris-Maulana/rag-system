@@ -1,16 +1,29 @@
-import os
-import sys
-import json
+"""LLM-as-judge evaluation of the RAG pipeline.
+
+Metrics are modelled on RAGAS but implemented directly (no `ragas` dependency):
+- faithfulness: binary YES/NO judgement that the answer is supported by the retrieved context
+- answer relevancy: 0.0-1.0 judge score of how directly the answer addresses the question
+- context precision: share of ground-truth keywords (>4 chars) that appear in the retrieved context
+  (a lexical proxy, not RAGAS's LLM-based context precision)
+"""
 import argparse
-import time
+import io
+import json
+import os
 import re
-from tqdm import tqdm
+import sys
+import time
+
 from groq import Groq, RateLimitError
+from tqdm import tqdm
 
 # Add src to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from pipeline import RAGPipeline
+from config import GROQ_MODEL  # noqa: E402
+from pipeline import RAGPipeline  # noqa: E402
+
+JUDGE_MODEL = os.getenv("GROQ_JUDGE_MODEL", GROQ_MODEL)
 
 EVALUATION_QA_PAIRS = [
     {
@@ -100,7 +113,7 @@ def call_llm_judge(client, prompt):
     for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model=JUDGE_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 max_tokens=20
@@ -122,54 +135,92 @@ Context: {context}
 Answer: {answer}
 
 Is the answer fully supported by the context? Reply with ONLY 'YES' or 'NO'."""
-    
+
     response = call_llm_judge(client, prompt).upper()
     return 1.0 if "YES" in response else 0.0
 
 def check_answer_relevance(client, question, answer):
-    prompt = f"""Given the question and the generated answer, score how relevant and helpful the answer is to the question on a scale of 0.0 to 1.0. 
+    prompt = f"""Given the question and the generated answer, score how relevant and helpful the answer is to the question on a scale of 0.0 to 1.0.
 0.0 means completely irrelevant, 1.0 means perfectly directly answers the question.
 
 Question: {question}
 Answer: {answer}
 
 Reply with ONLY a single float number between 0.0 and 1.0."""
-    
-    response = call_llm_judge(client, prompt)
-    try:
-        # Extract the first float found in the string
-        match = re.search(r'0\.\d+|1\.0|0|1', response)
-        if match:
-            return float(match.group())
+
+    return parse_score(call_llm_judge(client, prompt))
+
+def parse_score(response):
+    """Extract the first number from a judge reply and clamp it to [0, 1]."""
+    match = re.search(r'\d*\.\d+|\d+', response)
+    if not match:
         return 0.0
-    except ValueError:
-        return 0.0
+    return min(max(float(match.group()), 0.0), 1.0)
 
 def check_context_precision(ground_truth, context_chunks):
     # Check if retrieved sources contain keywords from ground truth answer
     combined_context = " ".join([chunk["text"] for chunk in context_chunks]).lower()
-    
+
     # Extract naive keywords from ground truth (words > 4 chars to skip common stop words)
     gt_words = set([re.sub(r'[^\w\s]', '', w.lower()) for w in ground_truth.split() if len(w) > 4])
-    
+
     if not gt_words:
         return 0.0
-        
+
     overlap_count = sum(1 for word in gt_words if word in combined_context)
     return overlap_count / len(gt_words)
 
+def evaluate_retrieval(retriever, samples, k=3):
+    """Context precision of plain dense top-k vs dense top-20 -> cross-encoder top-k. No LLM needed."""
+    rows = []
+    for item in tqdm(samples):
+        query, ground_truth = item["question"], item["ground_truth"]
+        dense = retriever.retrieve_mmr(query, k=k, fetch_k=20, lambda_mult=1.0)
+        reranked = retriever.retrieve(query, top_k_dense=20, top_k_rerank=k)
+        rows.append({
+            "question": query,
+            "dense_context_precision": check_context_precision(ground_truth, dense),
+            "reranked_context_precision": check_context_precision(ground_truth, reranked),
+            "dense_sources": [c["source"] for c in dense],
+            "reranked_sources": [c["source"] for c in reranked],
+        })
+    return rows
+
+def run_retrieval_only(samples):
+    from retrieve import Retriever
+
+    rows = evaluate_retrieval(Retriever(), samples)
+    dense = sum(r["dense_context_precision"] for r in rows) / len(rows)
+    reranked = sum(r["reranked_context_precision"] for r in rows) / len(rows)
+    report_path = "results/retrieval_report.json"
+    with open(report_path, "w") as f:
+        json.dump({"num_samples": len(rows), "k": 3,
+                   "summary": {"dense_context_precision": dense, "reranked_context_precision": reranked},
+                   "samples": rows}, f, indent=4)
+    print("\n" + "=" * 60)
+    print(f"Retrieval-only evaluation ({len(rows)} queries, top-3 context)")
+    print(f"Context Precision, dense top-3          : {dense:.4f}")
+    print(f"Context Precision, dense-20 + rerank-3  : {reranked:.4f}")
+    print(f"Saved to: {report_path}")
+
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate RAG Pipeline Manually")
+    parser = argparse.ArgumentParser(description="Evaluate the RAG pipeline with an LLM judge")
     parser.add_argument("--num_samples", type=int, default=20, help="Number of samples to evaluate (max 20)")
+    parser.add_argument("--retrieval_only", action="store_true",
+                        help="Only score retrieval (context precision); needs no API key")
     args = parser.parse_args()
 
     os.makedirs("results", exist_ok=True)
-    
+
+    if args.retrieval_only:
+        run_retrieval_only(EVALUATION_QA_PAIRS[:args.num_samples])
+        return
+
     print("Initializing RAG Pipeline for Evaluation...")
     print("Note: If Groq rate limits apply, execution will pause automatically.")
     rag = RAGPipeline()
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    
+
     samples = EVALUATION_QA_PAIRS[:args.num_samples]
     results_detailed = []
 
@@ -181,12 +232,11 @@ def main():
     for item in tqdm(samples):
         query = item["question"]
         ground_truth = item["ground_truth"]
-        
+
         # Suppress RAG printing during eval loop
-        import io
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
-        
+
         try:
             result = rag.query(query)
             ans = result["answer"]
@@ -194,19 +244,19 @@ def main():
             combined_context = "\n".join([c["text"] for c in ctx_chunks])
         finally:
             sys.stdout = old_stdout
-            
+
         # 1. Faithfulness
         f_score = check_faithfulness(client, query, combined_context, ans)
         faithfulness_scores.append(f_score)
-        
+
         # 2. Answer Relevancy
         r_score = check_answer_relevance(client, query, ans)
         relevance_scores.append(r_score)
-        
+
         # 3. Context Precision
         p_score = check_context_precision(ground_truth, ctx_chunks)
         precision_scores.append(p_score)
-        
+
         results_detailed.append({
             "question": query,
             "ground_truth": ground_truth,
@@ -215,7 +265,7 @@ def main():
             "answer_relevance_score": r_score,
             "context_precision_score": p_score
         })
-        
+
         # Respect rate limits for Groq
         time.sleep(1)
 
@@ -227,8 +277,18 @@ def main():
     # Save to JSON
     report_path = "results/evaluation_report.json"
     with open(report_path, "w") as f:
-        json.dump(results_detailed, f, indent=4)
-        
+        json.dump({
+            "generator_model": GROQ_MODEL,
+            "judge_model": JUDGE_MODEL,
+            "num_samples": len(samples),
+            "summary": {
+                "faithfulness": avg_faithfulness,
+                "answer_relevancy": avg_relevance,
+                "context_precision": avg_precision,
+            },
+            "samples": results_detailed,
+        }, f, indent=4)
+
     print("\n" + "="*60)
     print("=== EVALUATION SUMMARY ===")
     print("="*60)
@@ -239,13 +299,13 @@ def main():
     print(f"Context Precision         : {avg_precision:.4f}")
     print("-" * 60)
     print(f"Full detailed results saved to: {report_path}")
-    
+
     target_scores = {
         "Faithfulness": (avg_faithfulness, 0.80),
         "Answer Relevancy": (avg_relevance, 0.75),
         "Context Precision": (avg_precision, 0.70)
     }
-    
+
     print("\nTarget Achievement:")
     for metric, (score, target) in target_scores.items():
         status = "[PASS]" if score >= target else "[FAIL]"
