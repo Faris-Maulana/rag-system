@@ -38,9 +38,10 @@ vectorstore/
 embeddings/finetuned/
 
 # Results
-results/
+results/*
 *.json
 !results/evaluation_report.json
+!results/retrieval_report.json
 
 # IDE
 .vscode/
@@ -51,3 +52,11 @@ results/
 # Model Cache
 .cache/
 huggingface/
+
+# Runtime logs
+logs/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.DS_Store
