@@ -1,7 +1,7 @@
-# Debug & Fixing Guide — RAG System
-**Project:** RAG System for AI/ML Wikipedia Knowledge Base  
+# Troubleshooting
 
-This document covers the most common errors you will encounter while building this RAG system and exactly how to fix them.
+Common failures when building or running this RAG system, and how to fix them.
+Snippets are illustrative; the code in `src/` is the source of truth.
 
 ---
 
@@ -332,41 +332,18 @@ async def generate_qa_batch(chunks: list[str], client: AsyncGroq) -> list[dict]:
 
 ---
 
-## 6. RAGAS Evaluation Issues
+## 6. Evaluation Issues
 
-### 6.1 RAGAS requires OpenAI key by default
-**Symptom:**
-```
-openai.AuthenticationError: No API key provided
-```
-**Fix:** Configure RAGAS to use a different LLM judge:
-```python
-from ragas import evaluate
-from ragas.llms import LangchainLLMWrapper
-from langchain_groq import ChatGroq
-
-groq_llm = ChatGroq(model="llama-3.1-8b-instant", api_key=GROQ_API_KEY)
-ragas_llm = LangchainLLMWrapper(groq_llm)
-
-# Pass custom LLM to RAGAS
-result = evaluate(
-    dataset=eval_dataset,
-    metrics=[faithfulness, answer_relevance],
-    llm=ragas_llm
-)
+### 6.1 Faithfulness is suspiciously close to 1.0
+**Cause:** `src/evaluate.py` uses an LLM judge, and by default the judge is the same model as the
+generator, so it tends to approve its own answers.
+**Fix:** Point the judge at a different, ideally larger, model available on your Groq account:
+```bash
+GROQ_JUDGE_MODEL=llama-3.3-70b-versatile python src/evaluate.py
 ```
 
----
-
-### 6.2 RAGAS `faithfulness` always returns 1.0
-**Symptom:** Every answer scores perfect faithfulness — even clearly hallucinated ones.
-**Fix:** This often happens when the LLM judge is also the generator (circular). Use a different judge model:
-```python
-from langchain_community.llms import Ollama
-
-judge_llm = Ollama(model="mistral")  # different from generator
-ragas_llm = LangchainLLMWrapper(judge_llm)
-```
+### 6.2 Evaluating without an API key
+`python src/evaluate.py --retrieval_only` scores retrieval (context precision) only and needs no key.
 
 ---
 

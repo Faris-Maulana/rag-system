@@ -1,7 +1,8 @@
-# RAG System Implementation Plan
-**Candidate:** Faris  
-**Challenge:** RAG System for a Public Knowledge Base  
-**Submission Deadline:** Monday, March 16, 2026
+# Original Design Plan
+
+> This is the plan written before implementation, kept for context on the reasoning.
+> Where it differs from the code (e.g. it proposes RAGAS, nDCG and LLM fine-tuning),
+> the [README](../README.md) describes what was actually built and measured.
 
 ---
 
